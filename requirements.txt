@@ -117,7 +117,6 @@ nbclient==0.10.0
 nbconvert==7.16.3
 nbformat==5.10.3
 nest-asyncio==1.5.8
-netflix-movie-recommender==0.1.0
 networkx==3.3
 nltk==3.8.1
 notebook==7.1.2
