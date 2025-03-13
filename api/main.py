@@ -1,39 +1,46 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
+from pydantic import BaseModel
+from huggingface_hub import hf_hub_download
 import pickle
-import numpy as np
-import joblib
+import pandas as pd
+import os
 
-# Initialize FastAPI app
 app = FastAPI()
 
-# Load the trained model
-try:
-    model = joblib.load("../model/model.pkl")  # Use joblib instead of pickle
-except Exception as e:
-    raise RuntimeError(f"Failed to load model: {e}")
+# Download and Load Model from Hugging Face
+REPO_ID = "GlitaJay/california-housing-model"
+MODEL_FILENAME = "model.pkl"
 
-# Define a root endpoint
+# Ensure model directory exists
+os.makedirs("model", exist_ok=True)
+
+# Download the model dynamically
+model_path = hf_hub_download(repo_id=REPO_ID, filename=MODEL_FILENAME, cache_dir="model")
+
+with open(model_path, "rb") as f:
+    model = pickle.load(f)
+
+# Define request format
+class HousingInput(BaseModel):
+    MedInc: float
+    HouseAge: float
+    AveRooms: float
+    AveBedrms: float
+    Population: float
+    AveOccup: float
+    Latitude: float
+    Longitude: float
+
+@app.post("/predict")
+def predict_price(data: HousingInput):
+    # Convert input to DataFrame
+    df = pd.DataFrame([data.dict()])
+    
+    # Make prediction
+    prediction = model.predict(df)
+    
+    return {"predicted_price": prediction[0]}
+
 @app.get("/")
 def home():
-    return {"message": "Welcome to the California Housing Price Prediction API"}
-
-# Prediction endpoint
-@app.post("/predict/")
-def predict(data: dict):
-    try:
-        features = data.get("features")
-        if not isinstance(features, list):
-            raise HTTPException(status_code=400, detail="Invalid input format. 'features' must be a list.")
-
-        # Convert input to numpy array
-        input_array = np.array(features).reshape(1, -1)
-
-        # Ensure model has a predict method
-        if not hasattr(model, "predict"):
-            raise RuntimeError("Loaded model does not have a predict method.")
-
-        # Make prediction
-        prediction = model.predict(input_array)
-        return {"predicted_price": prediction.tolist()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {"message": "California Housing Price Prediction API"}

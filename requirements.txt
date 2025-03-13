@@ -4,22 +4,4 @@ pydantic
 scikit-learn
 numpy
 pandas
-matplotlib
-seaborn
-scipy
-shap
-umap-learn
-gensim
-spacy
-transformers
-sentence-transformers
-SQLAlchemy
-alembic
-requests
-beautifulsoup4
-selenium
-lxml
-notebook
-jupyterlab
-ipykernel
-ipywidgets
+huggingface_hub  # Added for model fetching
