@@ -10,15 +10,18 @@ app = FastAPI()
 # Download and Load Model from Hugging Face
 REPO_ID = "GlitaJay/california-housing-model"
 MODEL_FILENAME = "model.pkl"
+CACHE_DIR = "./model"  # Explicit cache directory
 
 # Ensure model directory exists
-os.makedirs("model", exist_ok=True)
+os.makedirs(CACHE_DIR, exist_ok=True)
 
-# Download the model dynamically
-model_path = hf_hub_download(repo_id=REPO_ID, filename=MODEL_FILENAME, cache_dir="model")
-
-with open(model_path, "rb") as f:
-    model = pickle.load(f)
+try:
+    model_path = hf_hub_download(repo_id=REPO_ID, filename=MODEL_FILENAME, cache_dir=CACHE_DIR)
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
+except Exception as e:
+    model = None
+    print(f"Error loading model: {e}")
 
 # Define request format
 class HousingInput(BaseModel):
@@ -33,6 +36,9 @@ class HousingInput(BaseModel):
 
 @app.post("/predict")
 def predict_price(data: HousingInput):
+    if model is None:
+        return {"error": "Model not loaded. Please check deployment logs."}
+    
     # Convert input to DataFrame
     df = pd.DataFrame([data.dict()])
     
