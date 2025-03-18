@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment
+.env
+.venv/
+env/
+
+# Deployment (ignore SYMLINKS in root, not actual files)
+/requirements.txt  # Ignore root symlink
+/runtime.txt       # Ignore root symlink 
+/Procfile          # Ignore root symlink
+
+# Local files
+model/             # Ignore local models
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coveragegit status/requirements.txt
+/runtime.txt
+/Procfile
