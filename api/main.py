@@ -101,12 +101,6 @@ async def load_model(app: FastAPI) -> sklearn.base.BaseEstimator:
     Raises:
         HTTPException: 500 error with details for any loading failure
         FileNotFoundError: If local model file is missing in development mode
-    
-    Implementation Notes:
-    1. Uses Hugging Face Hub's official download API with resumable downloads
-    2. Implements async locking to prevent concurrent initialization
-    3. Maintains model state in app.state for request context access
-    4. Implements proper cache management for production downloads
     """
     async with model_lock:  # Ensure single-threaded model initialization
         # Return existing model if already loaded
@@ -118,17 +112,20 @@ async def load_model(app: FastAPI) -> sklearn.base.BaseEstimator:
             logger.info(f"🏗️  Initializing model in {ENVIRONMENT} environment")
 
             if ENVIRONMENT == "production":
-                # Production: Download from Hugging Face Hub with caching
-                logger.info("🚀 Initializing production model from Hugging Face Hub")
-                model_path = hf_hub_download(
-                    repo_id=MODEL_REPO,
-                    filename=MODEL_FILE,
-                    cache_dir="model_cache",  # Local cache directory
-                    resume_download=True      # Resume interrupted downloads
-                )
-                logger.info(f"✅ Model downloaded to: {model_path}")
-                temp_model = joblib.load(model_path)
-                logger.info("👍 Hugging Face model loaded successfully")
+                # Production: Lazy load model on demand (when required)
+                if not hasattr(app.state, 'model') or app.state.model is None:
+                    logger.info("🚀 Initializing production model from Hugging Face Hub")
+                    model_path = hf_hub_download(
+                        repo_id=MODEL_REPO,
+                        filename=MODEL_FILE,
+                        cache_dir="model_cache",  # Local cache directory
+                        resume_download=True      # Resume interrupted downloads
+                    )
+                    logger.info(f"✅ Model downloaded to: {model_path}")
+                    temp_model = joblib.load(model_path)
+                    logger.info("👍 Hugging Face model loaded successfully")
+                    app.state.model = temp_model
+                    app.state.model_loaded = True
 
             else:
                 # Development: Load from local file system
@@ -141,10 +138,9 @@ async def load_model(app: FastAPI) -> sklearn.base.BaseEstimator:
                 logger.info(f"🔄 Loading local model from {LOCAL_MODEL_PATH}")
                 temp_model = joblib.load(LOCAL_MODEL_PATH)
                 logger.info("✅ Local model loaded successfully")
+                app.state.model = temp_model
+                app.state.model_loaded = True
 
-            # Update application state after successful load
-            app.state.model = temp_model
-            app.state.model_loaded = True
             return app.state.model
 
         except Exception as e:
@@ -156,6 +152,7 @@ async def load_model(app: FastAPI) -> sklearn.base.BaseEstimator:
                 detail=error_msg,
                 headers={"X-Error-Message": error_msg}
             )
+
 
 # ============================== 💡 Lifespan Context Manager =========================
 @asynccontextmanager
