@@ -23,7 +23,6 @@ Features:
 
 Author: Glita Jay
 Version: 1.1
-Date: [Insert Date]
 """
 
 from fastapi import FastAPI, Request, HTTPException
