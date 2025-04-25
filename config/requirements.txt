@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+scikit-learn
+numpy
+pandas
+huggingface_hub  # Added for model fetching
+joblib
+requests
+python-dotenv
